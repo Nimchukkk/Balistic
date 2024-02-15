@@ -8,30 +8,22 @@ public class PowerSlider : MonoBehaviour
     
     private Slider _powerSlider;
 
-    private void Awake()
-    {
+    private void Awake() => 
         _powerSlider = GetComponent<Slider>();
-    }
 
-    private void Update()
-    {
+    private void Update() => 
         ForcePercentTextUpdate();
-    }
+
+    public void SetMaxValue(float force) => 
+        _powerSlider.maxValue = force;
+
+    public void SetValue(float force) => 
+        _powerSlider.value = force;
 
     private void ForcePercentTextUpdate()
     {
-        var multiplierForEquating = 100 / _powerSlider.maxValue;
-        var forcePercentValue = multiplierForEquating * _powerSlider.value;
+        float multiplierForEquating = 100 / _powerSlider.maxValue;
+        float forcePercentValue = multiplierForEquating * _powerSlider.value;
         _forcePercentText.text = forcePercentValue.ToString(forcePercentValue < 100 ? "00" : "000");
-    }
-
-    public void SetMaxValue(float force)
-    {
-        _powerSlider.maxValue = force;
-    }
-
-    public void SetValue(float force)
-    {
-        _powerSlider.value = force;
     }
 }

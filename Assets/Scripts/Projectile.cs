@@ -3,44 +3,30 @@ using UnityEngine;
 public class Projectile : MonoBehaviour
 {
     [SerializeField] private Transform _bulletStainPrefab;
-    [SerializeField] private ParticleSystem _btoomPrefab;
+    [SerializeField] private ParticleSystem _btoomFXPrefab;
     [SerializeField] private float _speed = 3f;
     [SerializeField] private float _raycastDistance = 0.5f;
     [SerializeField] private float _ricochetForce = 10f;
     [SerializeField] private int _reboundNumber = 2;
 
     private Transform _transform;
-    private Vector3 _initialVelocity;
+    private Vector3 _velocity;
     private int _obstacleLayer;
     private bool _isQuitting;
-
-    private void OnApplicationQuit()
-    {
-        _isQuitting = true;
-    }
-
-    private void OnDestroy()
-    {
-        if (!_isQuitting)
-            Instantiate(_btoomPrefab, _transform.position, _btoomPrefab.transform.rotation);
-    }
-
-    private void OnEnable()
-    {
-        Destroy(gameObject, 5f);
-    }
+    
+    private const string ObstacleLayerName = "Obstacle";
 
     private void Awake()
     {
         _transform = GetComponent<Transform>();
-        _obstacleLayer = LayerMask.NameToLayer("Obstacle");
+        _obstacleLayer = LayerMask.NameToLayer(ObstacleLayerName);
     }
 
     private void Update()
     {
-        var ray = new Ray(_transform.position, _initialVelocity);
+        Ray ray = new Ray(_transform.position, _velocity);
 
-        if (!Physics.Raycast(ray, out var hit, _raycastDistance))
+        if (!Physics.Raycast(ray, out RaycastHit hit, _raycastDistance))
         {
             Move();
 
@@ -49,33 +35,51 @@ public class Projectile : MonoBehaviour
         }
         else
         {
-            var ricochetDirection = Vector3.Reflect(_initialVelocity, hit.normal).normalized;
-
-            _initialVelocity = ricochetDirection * _ricochetForce;
+            SetNewVelocity(hit);
 
             _reboundNumber--;
-            if (hit.transform.gameObject.layer == _obstacleLayer)
-            {
-                Instantiate(_bulletStainPrefab, _transform.position, hit.transform.rotation);
-            }
+            
+            CreateBulletStain(hit);
         }
     }
 
-    private void Move()
+    private void OnEnable() => 
+        Destroy(gameObject, 5f);
+
+    private void OnApplicationQuit() => 
+        _isQuitting = true;
+
+    private void OnDestroy()
     {
-        var deltaTime = Time.deltaTime;
-        //_transform.position += _initialVelocity * (deltaTime * _speed);
-        _transform.Translate(_initialVelocity * (deltaTime * _speed), Space.World);
-
-        var newVelocity = _initialVelocity + Vector3.up * (Physics.gravity.y * deltaTime);
-
-        _initialVelocity = newVelocity;
+        if (!_isQuitting)
+            Instantiate(_btoomFXPrefab, _transform.position, _btoomFXPrefab.transform.rotation);
     }
-
 
     public void SetVelocityAndAngle(Vector3 velocity, float angle)
     {
         _transform.rotation = Quaternion.Euler(angle, 0, 0);
-        _initialVelocity = velocity;
+        _velocity = velocity;
+    }
+
+    private void Move()
+    {
+        _transform.Translate(_velocity * (_speed * Time.deltaTime), Space.World);
+
+        Vector3 newVelocity = _velocity + Vector3.up * (Physics.gravity.y * Time.deltaTime);
+
+        _velocity = newVelocity;
+    }
+
+    private void CreateBulletStain(RaycastHit hit)
+    {
+        if (hit.transform.gameObject.layer == _obstacleLayer) 
+            Instantiate(_bulletStainPrefab, _transform.position, hit.transform.rotation);
+    }
+
+    private void SetNewVelocity(RaycastHit hit)
+    {
+        Vector3 ricochetDirection = Vector3.Reflect(_velocity, hit.normal).normalized;
+
+        _velocity = ricochetDirection * _ricochetForce;
     }
 }
